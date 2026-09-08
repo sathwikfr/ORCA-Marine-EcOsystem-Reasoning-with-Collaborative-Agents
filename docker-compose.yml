@@ -1,0 +1,132 @@
+version: "3.9"
+
+services:
+  # ── Nginx Reverse Proxy ──────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - orca-net
+    restart: unless-stopped
+
+  # ── React Frontend ───────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    expose:
+      - "3000"
+    environment:
+      - VITE_API_BASE_URL=http://localhost/api/v1
+      - VITE_WS_URL=ws://localhost/ws
+    networks:
+      - orca-net
+    restart: unless-stopped
+
+  # ── FastAPI Backend ──────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    expose:
+      - "8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://orca_user:orca_pass@postgres:5432/orca_db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - orca-net
+    restart: unless-stopped
+
+  # ── AI Agents ────────────────────────────────────────────────────────
+  agents:
+    build:
+      context: ./agents
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - BACKEND_URL=http://backend:8000
+      - AGENT_MODE=loop
+    depends_on:
+      - redis
+      - backend
+    networks:
+      - orca-net
+    restart: unless-stopped
+
+  # ── PostgreSQL + PostGIS ─────────────────────────────────────────────
+  postgres:
+    image: postgis/postgis:15-3.4
+    environment:
+      POSTGRES_DB: orca_db
+      POSTGRES_USER: orca_user
+      POSTGRES_PASSWORD: orca_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orca_user -d orca_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - orca-net
+    restart: unless-stopped
+
+  # ── Redis ────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - orca-net
+    restart: unless-stopped
+
+  # ── MinIO Object Storage ─────────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"   # MinIO Console
+    networks:
+      - orca-net
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+
+networks:
+  orca-net:
+    driver: bridge

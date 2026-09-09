@@ -1,21 +1,23 @@
 // frontend/src/App.jsx
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from './store/authStore';
-import { LoginPage }     from './pages/LoginPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { MapPage }       from './pages/MapPage';
-import { ForecastPage }  from './pages/ForecastPage';
-import { ChatPage }      from './pages/ChatPage';
-import { AnalyticsPage } from './pages/AnalyticsPage';
-import { AlertsPage }    from './pages/AlertsPage';
+import { LoginPage }                 from './pages/LoginPage';
+import { DashboardPage }             from './pages/DashboardPage';
+import { MapPage }                   from './pages/MapPage';
+import { ForecastPage }              from './pages/ForecastPage';
+import { ChatPage }                  from './pages/ChatPage';
+import { AnalyticsPage }             from './pages/AnalyticsPage';
+import { AlertsPage }                from './pages/AlertsPage';
+import { VoyagePlannerPage }         from './pages/VoyagePlannerPage';
+import { FishingPage }               from './pages/FishingPage';
+import { ScientificInvestigationPage } from './pages/ScientificInvestigationPage';
 
-// Simple protected route wrapper
+// Protected route wrapper
 function Protected({ children }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
-
-import { useState, useEffect } from 'react';
 
 function Topbar() {
   const [time, setTime] = useState(new Date());
@@ -71,7 +73,7 @@ function Topbar() {
         fontWeight: 600,
       }}>
         <span className="status-dot active" />
-        Live Telemetry Active · 8 Zones
+        Decision Kernel Active · 8 Coastal Sectors
       </div>
     </header>
   );
@@ -82,19 +84,27 @@ function Sidebar() {
 
   const sections = [
     {
-      title: 'Real-Time Monitoring',
+      title: 'Voyage & Operations',
       links: [
-        { to: '/',         icon: '📊', label: 'Dashboard' },
-        { to: '/map',      icon: '🗺️', label: 'Ocean Risk Map' },
-        { to: '/forecast', icon: '📈', label: '24h Forecast' },
+        { to: '/',              icon: '📊', label: 'Dashboard' },
+        { to: '/voyage',        icon: '🧭', label: 'What-If Planner' },
+        { to: '/fishing',       icon: '🐟', label: 'Fishing & PFZ' },
+        { to: '/map',           icon: '🗺️', label: 'Ocean Risk Map' },
       ],
     },
     {
-      title: 'Disaster Reasoning & AI',
+      title: 'Monitoring & Safety',
       links: [
-        { to: '/alerts',    icon: '🚨', label: 'Alert Center' },
-        { to: '/analytics', icon: '🧠', label: 'Marine Analytics' },
-        { to: '/chat',      icon: '💬', label: 'AI Officer Chat' },
+        { to: '/forecast',      icon: '📈', label: '24h Forecast' },
+        { to: '/alerts',        icon: '🚨', label: 'Alert Center' },
+      ],
+    },
+    {
+      title: 'Reasoning & Intelligence',
+      links: [
+        { to: '/investigation', icon: '🔬', label: 'Scientific Inquest' },
+        { to: '/analytics',     icon: '🧠', label: 'Marine Analytics' },
+        { to: '/chat',          icon: '💬', label: 'AI Supervisor (EN/TE)' },
       ],
     },
   ];
@@ -111,16 +121,16 @@ function Sidebar() {
               fontSize: '0.66rem', color: 'var(--accent-blue)',
               fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
             }}>
-              Marine AI · SIH26176
+              Marine Intelligence · SIH26176
             </div>
           </div>
         </div>
       </div>
 
       {/* Categorized Nav links */}
-      <div style={{ flex: 1, padding: '12px 0' }}>
+      <div style={{ flex: 1, padding: '12px 0', overflowY: 'auto' }}>
         {sections.map((sec) => (
-          <div key={sec.title} style={{ marginBottom: 12 }}>
+          <div key={sec.title} style={{ marginBottom: 14 }}>
             <div className="nav-section-title">{sec.title}</div>
             {sec.links.map(({ to, icon, label }) => (
               <NavLink
@@ -147,11 +157,11 @@ function Sidebar() {
         display: 'flex', flexDirection: 'column', gap: 4,
       }}>
         <div className="flex items-center justify-between" style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--accent-blue)' }}>
-          <span>MULTI-AGENT MESH</span>
-          <span style={{ color: 'var(--alert-green)' }}>● 7/7 ONLINE</span>
+          <span>DECISION MESH</span>
+          <span style={{ color: 'var(--alert-green)' }}>● 6/6 ONLINE</span>
         </div>
         <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-          Lat: 8.4s avg · INCOIS/IMD Feeds
+          INCOIS/IMD/Copernicus Ingestion
         </div>
       </div>
 
@@ -217,6 +227,18 @@ export default function App() {
           }
         />
         <Route
+          path="/voyage"
+          element={
+            <Protected><AppLayout><VoyagePlannerPage /></AppLayout></Protected>
+          }
+        />
+        <Route
+          path="/fishing"
+          element={
+            <Protected><AppLayout><FishingPage /></AppLayout></Protected>
+          }
+        />
+        <Route
           path="/map"
           element={
             <Protected><AppLayout><MapPage /></AppLayout></Protected>
@@ -232,6 +254,12 @@ export default function App() {
           path="/alerts"
           element={
             <Protected><AppLayout><AlertsPage /></AppLayout></Protected>
+          }
+        />
+        <Route
+          path="/investigation"
+          element={
+            <Protected><AppLayout><ScientificInvestigationPage /></AppLayout></Protected>
           }
         />
         <Route

@@ -26,12 +26,19 @@ async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
     logger.info("ORCA Backend starting up...")
     # Create tables (in production use Alembic migrations)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    logger.info("Database tables ready")
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database tables ready")
+    except Exception as exc:
+        logger.warning(f"PostgreSQL connection skipped: {exc}. Running in standalone/offline mode.")
     yield
     logger.info("ORCA Backend shutting down...")
-    await engine.dispose()
+    try:
+        await engine.dispose()
+    except Exception:
+        pass
+
 
 
 app = FastAPI(

@@ -66,14 +66,27 @@ function Topbar() {
 
       {/* Live Monitoring Pulse */}
       <div className="flex items-center gap-2" style={{
-        fontSize: '0.78rem', color: '#38bdf8',
-        background: 'rgba(0, 212, 255, 0.08)',
-        border: '1px solid rgba(0, 212, 255, 0.25)',
-        padding: '5px 14px', borderRadius: 20,
+        fontSize: '0.76rem', color: '#38bdf8',
+        background: 'rgba(0, 212, 255, 0.06)',
+        border: '1px solid rgba(0, 212, 255, 0.2)',
+        padding: '5px 12px', borderRadius: 20,
         fontWeight: 600,
       }}>
         <span className="status-dot active" />
-        Decision Kernel Active · 8 Coastal Sectors
+        <span>Decision Kernel · 8 Sectors</span>
+      </div>
+
+      {/* Live AI Copilot Status */}
+      <div className="flex items-center gap-2" style={{
+        fontSize: '0.76rem', color: '#c084fc',
+        background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.08), rgba(192, 132, 252, 0.12))',
+        border: '1px solid rgba(192, 132, 252, 0.3)',
+        padding: '5px 14px', borderRadius: 20,
+        fontWeight: 600,
+        boxShadow: '0 0 12px rgba(192, 132, 252, 0.15)',
+      }}>
+        <span>✨</span>
+        <span>AI Copilot Active</span>
       </div>
     </header>
   );

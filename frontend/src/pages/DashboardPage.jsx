@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { AlertCard } from '../components/alerts/AlertCard';
 import { AgentStatusPanel } from '../components/agents/AgentStatusPanel';
+import { AiCopilotBanner } from '../components/ai/AiCopilotBanner';
 import { alertsAPI } from '../services/api';
 import { useAlertStore } from '../store/alertStore';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -83,16 +84,16 @@ export function DashboardPage() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
       {/* Page header */}
       <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: 14 }}>
         <div>
           <div className="flex items-center gap-3">
             <h1>Marine Operations Dashboard</h1>
-            <span className="badge badge-red pulse">LIVE OPS</span>
+            <span className="badge badge-red pulse">LIVE TELEMETRY ACTIVE</span>
           </div>
           <p style={{ marginTop: 4 }}>
-            Real-time multi-agent disaster detection & explainable decision reasoning across Indian coastal waters
+            Multi-agent autonomous hazard detection & deterministic decision reasoning across Indian coastal waters
           </p>
         </div>
 
@@ -112,20 +113,23 @@ export function DashboardPage() {
             style={{ padding: '7px 16px', fontSize: '0.8rem' }}
             onClick={() => setAlerts(DEMO_ALERTS)}
           >
-            🔄 Reset Live Scenario
+            🔄 Sync Agents
           </button>
         </div>
       </div>
 
-      {/* Stats */}
+      {/* AI Copilot & Real-Time Situational Hero */}
+      <AiCopilotBanner />
+
+      {/* Clean Stat Metric Cards */}
       <div className="stat-grid">
         <StatCard
           icon="🚨"
           value={byLevel.RED.length}
-          label="Critical Alerts"
+          label="Critical Threats"
           color="var(--alert-red)"
           badge="Urgent Response"
-          sub="Bay of Bengal Central"
+          sub="North AP Cyclone Danger Zone"
           glow="rgba(239, 68, 68, 0.9)"
         />
         <StatCard
@@ -134,7 +138,7 @@ export function DashboardPage() {
           label="Warnings"
           color="var(--alert-orange)"
           badge="Advisory Active"
-          sub="Kerala Coast (HAB)"
+          sub="Kerala Coast (Algal Bloom)"
           glow="rgba(249, 115, 22, 0.9)"
         />
         <StatCard
@@ -143,16 +147,16 @@ export function DashboardPage() {
           label="Advisories"
           color="var(--alert-yellow)"
           badge="Watch Active"
-          sub="Arabian Sea (Oil Signature)"
+          sub="Gujarat Coast (SAR Radar Anomaly)"
           glow="rgba(245, 158, 11, 0.9)"
         />
         <StatCard
           icon="🌐"
           value={alerts.filter((a) => a.is_active).length}
-          label="Active Alerts"
+          label="Active Hazards"
           color="var(--accent-blue)"
           badge="8 Zones Tracked"
-          sub="Multi-Agent Mesh Active"
+          sub="5 Neural Agents Active"
           glow="rgba(0, 212, 255, 0.9)"
         />
       </div>

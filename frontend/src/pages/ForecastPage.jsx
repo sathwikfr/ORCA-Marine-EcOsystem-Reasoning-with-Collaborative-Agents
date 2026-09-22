@@ -8,12 +8,15 @@ import {
 } from 'recharts';
 
 const ZONES = [
-  { name: 'Bay of Bengal Central', lat: 16.0, lon: 82.0 },
-  { name: 'Arabian Sea Central',   lat: 15.0, lon: 73.0 },
-  { name: 'Bay of Bengal South',   lat: 11.0, lon: 80.0 },
-  { name: 'Kerala Coast',          lat: 10.0, lon: 76.0 },
-  { name: 'Andaman Islands',       lat: 11.7, lon: 92.7 },
-  { name: 'Gulf of Mannar',        lat:  9.0, lon: 79.0 },
+  { name: 'Visakhapatnam (AP Coast)',  lat: 17.68, lon: 83.22 },
+  { name: 'Kalingapatnam (North AP)',  lat: 18.34, lon: 84.13 },
+  { name: 'Offshore West-Central BoB', lat: 17.50, lon: 84.00 },
+  { name: 'Bay of Bengal Central',     lat: 16.00, lon: 82.00 },
+  { name: 'Arabian Sea Central',       lat: 15.00, lon: 73.00 },
+  { name: 'Bay of Bengal South',       lat: 11.00, lon: 80.00 },
+  { name: 'Kerala Coast',              lat: 10.00, lon: 76.00 },
+  { name: 'Andaman Islands',           lat: 11.70, lon: 92.70 },
+  { name: 'Gulf of Mannar',            lat:  9.00, lon: 79.00 },
 ];
 
 const RISK_COLOR = (score) =>

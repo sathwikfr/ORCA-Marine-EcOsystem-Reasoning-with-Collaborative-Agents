@@ -2,12 +2,15 @@ import asyncio, httpx, json, sys
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 ZONES = [
-    ('Bay of Bengal Central', 16.0, 82.0),
-    ('Arabian Sea Central',   15.0, 73.0),
-    ('Kerala Coast',          10.0, 76.0),
-    ('Bay of Bengal South',   11.0, 80.0),
-    ('Andaman Islands',       11.7, 92.7),
-    ('Gulf of Mannar',        9.0,  79.0),
+    ('Visakhapatnam (AP Coast)',  17.68, 83.22),
+    ('Kalingapatnam (North AP)',  18.34, 84.13),
+    ('Offshore West-Central BoB', 17.50, 84.00),
+    ('Bay of Bengal Central',     16.00, 82.00),
+    ('Arabian Sea Central',       15.00, 73.00),
+    ('Kerala Coast',              10.00, 76.00),
+    ('Bay of Bengal South',       11.00, 80.00),
+    ('Andaman Islands',           11.70, 92.70),
+    ('Gulf of Mannar',             9.00, 79.00),
 ]
 
 BEAUFORT = [

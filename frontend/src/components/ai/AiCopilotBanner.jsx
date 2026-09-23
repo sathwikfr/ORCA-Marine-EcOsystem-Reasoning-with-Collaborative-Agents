@@ -1,5 +1,5 @@
 // frontend/src/components/ai/AiCopilotBanner.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const KNOWLEDGE_RESPONSES = {
@@ -79,14 +79,15 @@ export function AiCopilotBanner() {
 
   // Live real-time telemetry state from Open-Meteo
   const [telemetry, setTelemetry] = useState({
-    pressure: 987.8,
-    wind: 45.3,
-    gusts: 61.2,
-    waves: 2.68,
-    isSevere: true,
-    systemName: 'Deep Depression / "Cyclone Arnab" Track',
+    pressure: 1008.2,
+    wind: 15.0,
+    gusts: 22.0,
+    waves: 1.8,
+    isSevere: false,
+    alertLevel: 'nominal', // 'cyclone' | 'rough_sea' | 'squall' | 'nominal'
+    systemName: 'Maritime Normal (Fair Weather)',
     sector: 'North AP / West-Central Bay of Bengal',
-    lastUpdated: 'Just now',
+    lastUpdated: 'Live sync pending...',
   });
 
   // Dynamic autonomous polling from live satellite/marine sensors
@@ -94,7 +95,7 @@ export function AiCopilotBanner() {
     async function pollLiveTelemetry() {
       try {
         const [wRes, mRes] = await Promise.all([
-          fetch('https://api.open-meteo.com/v1/forecast?latitude=17.68&longitude=83.22&current=temperature_2m,wind_speed_10m,wind_gusts_10m,surface_pressure,precipitation&timezone=Asia/Kolkata'),
+          fetch('https://api.open-meteo.com/v1/forecast?latitude=17.68&longitude=83.22&current=temperature_2m,wind_speed_10m,wind_gusts_10m,pressure_msl,surface_pressure,precipitation&timezone=Asia/Kolkata'),
           fetch('https://marine-api.open-meteo.com/v1/marine?latitude=17.5&longitude=84.0&current=wave_height'),
         ]);
         const wData = await wRes.json();
@@ -102,24 +103,46 @@ export function AiCopilotBanner() {
         const curW = wData?.current || {};
         const curM = mData?.current || {};
 
-        const p = curW.surface_pressure ?? 987.8;
-        const w = curW.wind_speed_10m ?? 45.3;
-        const g = curW.wind_gusts_10m ?? 61.2;
-        const waves = curM.wave_height ?? 2.68;
+        // Use Sea-Level Normalized Pressure (pressure_msl) standard across maritime systems
+        const p = curW.pressure_msl ?? curW.surface_pressure ?? 1010.0;
+        const w = curW.wind_speed_10m ?? 12.0;
+        const g = curW.wind_gusts_10m ?? 20.0;
+        const waves = curM.wave_height ?? 1.8;
 
-        // Autonomous Meteorological Thresholds:
-        // Pressure < 1000 hPa = Low Pressure / Depression / Cyclone Precursor
-        // Wind >= 40 km/h = Near Gale / Squall
-        // Waves >= 2.5m = Exceeds Structural Limits
-        const isSevere = p < 1000 || w >= 40 || waves >= 2.5;
+        // Accurate Meteorological & Marine Thresholds:
+        // 1. Tropical Cyclone / Deep Depression: requires steep pressure drop (MSL < 995 hPa) + sustained gale winds (>= 45 km/h) or violent gusts (>= 75 km/h)
+        const isCyclone = (p < 995 && (w >= 45 || g >= 65)) || w >= 65 || g >= 85;
+        // 2. High Sea Swell: Wave height exceeds safe small-craft/trawler limit (2.5m)
+        const isRoughSea = !isCyclone && waves >= 2.5;
+        // 3. Coastal Squall: Sudden gusts without cyclone pressure drop
+        const isSquall = !isCyclone && !isRoughSea && (w >= 40 || g >= 55);
+
+        let alertLevel = 'nominal';
+        let systemName = 'Maritime Normal (Fair Weather)';
+        let isSevere = false;
+
+        if (isCyclone) {
+          alertLevel = 'cyclone';
+          systemName = 'Deep Depression / Tropical Cyclone Alert';
+          isSevere = true;
+        } else if (isRoughSea) {
+          alertLevel = 'rough_sea';
+          systemName = 'Offshore High Sea Swell Advisory';
+          isSevere = true;
+        } else if (isSquall) {
+          alertLevel = 'squall';
+          systemName = 'Coastal Squall & Strong Gust Warning';
+          isSevere = true;
+        }
 
         setTelemetry({
           pressure: Number(p.toFixed(1)),
           wind: Number(w.toFixed(1)),
           gusts: Number(g.toFixed(1)),
           waves: Number(waves.toFixed(2)),
+          alertLevel,
           isSevere,
-          systemName: isSevere ? 'Deep Depression / Cyclone Vortex' : 'Maritime Normal (Fair Weather)',
+          systemName,
           sector: 'North AP / West-Central Bay of Bengal',
           lastUpdated: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) + ' IST',
         });
@@ -163,6 +186,41 @@ export function AiCopilotBanner() {
     }, 550);
   };
 
+  const getAlertBadge = () => {
+    if (telemetry.alertLevel === 'cyclone') {
+      return {
+        label: '● Live Cyclone / Deep Depression',
+        color: '#f87171',
+        bg: 'rgba(239, 68, 68, 0.12)',
+        border: 'rgba(239, 68, 68, 0.3)',
+      };
+    }
+    if (telemetry.alertLevel === 'rough_sea') {
+      return {
+        label: '● High Sea Swell Advisory',
+        color: '#fbbf24',
+        bg: 'rgba(245, 158, 11, 0.12)',
+        border: 'rgba(245, 158, 11, 0.3)',
+      };
+    }
+    if (telemetry.alertLevel === 'squall') {
+      return {
+        label: '● Coastal Squall Warning',
+        color: '#fbbf24',
+        bg: 'rgba(245, 158, 11, 0.12)',
+        border: 'rgba(245, 158, 11, 0.3)',
+      };
+    }
+    return {
+      label: '● All Coastal Sectors Nominal',
+      color: '#10b981',
+      bg: 'rgba(16, 185, 129, 0.1)',
+      border: 'rgba(16, 185, 129, 0.25)',
+    };
+  };
+
+  const badge = getAlertBadge();
+
   return (
     <div className="ai-hero-card" style={{ marginBottom: 20 }}>
       {/* Top Meta Bar */}
@@ -174,12 +232,12 @@ export function AiCopilotBanner() {
           </span>
           <span style={{
             fontSize: '0.74rem',
-            color: telemetry.isSevere ? '#f87171' : '#10b981',
-            background: telemetry.isSevere ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.1)',
-            border: `1px solid ${telemetry.isSevere ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.25)'}`,
+            color: badge.color,
+            background: badge.bg,
+            border: `1px solid ${badge.border}`,
             padding: '3px 10px', borderRadius: 20, fontWeight: 600,
           }}>
-            {telemetry.isSevere ? '● Live Crisis Detected' : '● All Coastal Sectors Nominal'} (Synced {telemetry.lastUpdated})
+            {badge.label} (Synced {telemetry.lastUpdated})
           </span>
         </div>
 
@@ -201,9 +259,9 @@ export function AiCopilotBanner() {
         </div>
       </div>
 
-      {/* Hero Headline & Situational Ingestion (Dynamically switches on severe vs calm!) */}
+      {/* Hero Headline & Situational Ingestion (Dynamically switches on condition) */}
       <div style={{ marginBottom: 16 }}>
-        {telemetry.isSevere ? (
+        {telemetry.alertLevel === 'cyclone' ? (
           <>
             <h2 style={{ fontSize: '1.45rem', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
               <span>🚨</span>
@@ -213,9 +271,37 @@ export function AiCopilotBanner() {
               </span>
             </h2>
             <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', maxWidth: 900, lineHeight: 1.5 }}>
-              Autonomous multi-agent consensus indicates a high-intensity marine vortex active in {telemetry.sector}.
-              Live barometric sensor telemetry has plummeted to <strong style={{ color: '#ef4444' }}>{telemetry.pressure} hPa</strong> with gusts of <strong style={{ color: '#fbbf24' }}>{telemetry.gusts} km/h</strong>.
+              Autonomous multi-agent consensus indicates a high-intensity cyclonic system active in {telemetry.sector}.
+              Barometric pressure (MSL) has plummeted to <strong style={{ color: '#ef4444' }}>{telemetry.pressure} hPa</strong> with gale gusts of <strong style={{ color: '#fbbf24' }}>{telemetry.gusts} km/h</strong>.
               Deterministic voyage verdict is <strong style={{ color: '#ef4444' }}>PROHIBITED</strong>.
+            </p>
+          </>
+        ) : telemetry.alertLevel === 'rough_sea' ? (
+          <>
+            <h2 style={{ fontSize: '1.45rem', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span>⚠️</span>
+              <span>
+                Marine Advisory:{' '}
+                <span style={{ color: '#fbbf24' }}>{telemetry.systemName}</span>
+              </span>
+            </h2>
+            <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', maxWidth: 900, lineHeight: 1.5 }}>
+              Surface winds are moderate at <strong style={{ color: '#38bdf8' }}>{telemetry.wind} km/h</strong>, but offshore wave crests are elevated at <strong style={{ color: '#f87171' }}>{telemetry.waves}m</strong> (exceeding the 2.50m max trawler limit).
+              Deterministic voyage verdict is <strong style={{ color: '#fbbf24' }}>RESTRICTED TO COASTAL REACHES</strong>. Small craft should avoid deep-sea waters.
+            </p>
+          </>
+        ) : telemetry.alertLevel === 'squall' ? (
+          <>
+            <h2 style={{ fontSize: '1.45rem', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span>⚠️</span>
+              <span>
+                Weather Alert:{' '}
+                <span style={{ color: '#fbbf24' }}>{telemetry.systemName}</span>
+              </span>
+            </h2>
+            <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', maxWidth: 900, lineHeight: 1.5 }}>
+              Coastal squalls and gusts peaking at <strong style={{ color: '#fbbf24' }}>{telemetry.gusts} km/h</strong> detected across {telemetry.sector}.
+              Barometric pressure is stable at {telemetry.pressure} hPa. Exercise cautionary navigation.
             </p>
           </>
         ) : (
@@ -243,31 +329,38 @@ export function AiCopilotBanner() {
       }}>
         <div className="ai-telemetry-chip">
           <div className="flex items-center justify-between">
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Barometric Sensor</span>
-            <span style={{ color: telemetry.pressure < 1000 ? '#ef4444' : '#10b981', fontSize: '0.75rem', fontWeight: 700 }}>
-              {telemetry.pressure < 1000 ? 'DEPRESSION' : 'NORMAL'}
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Barometric (MSL)</span>
+            <span style={{
+              color: telemetry.pressure < 995 ? '#ef4444' : telemetry.pressure < 1005 ? '#fbbf24' : '#10b981',
+              fontSize: '0.75rem', fontWeight: 700,
+            }}>
+              {telemetry.pressure < 995 ? 'DEPRESSION' : telemetry.pressure < 1005 ? 'SLIGHT LOW' : 'NORMAL'}
             </span>
           </div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: telemetry.pressure < 1000 ? '#f87171' : '#34d399', fontFamily: 'JetBrains Mono' }}>
+          <div style={{
+            fontSize: '1.25rem', fontWeight: 800,
+            color: telemetry.pressure < 995 ? '#f87171' : telemetry.pressure < 1005 ? '#fbbf24' : '#34d399',
+            fontFamily: 'JetBrains Mono',
+          }}>
             {telemetry.pressure} hPa
           </div>
           <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-            {telemetry.pressure < 1000 ? 'Vortex Center Proximity' : 'Standard 1013 hPa baseline'}
+            {telemetry.pressure < 995 ? 'Vortex Center Proximity' : 'Sea-level normalized baseline'}
           </span>
         </div>
 
         <div className="ai-telemetry-chip">
           <div className="flex items-center justify-between">
             <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Offshore Wind</span>
-            <span style={{ color: telemetry.wind >= 40 ? '#f59e0b' : '#38bdf8', fontSize: '0.75rem', fontWeight: 700 }}>
-              {telemetry.wind >= 40 ? 'SQUALL' : 'FAIR BREEZE'}
+            <span style={{ color: telemetry.wind >= 45 ? '#ef4444' : telemetry.wind >= 30 ? '#f59e0b' : '#38bdf8', fontSize: '0.75rem', fontWeight: 700 }}>
+              {telemetry.wind >= 45 ? 'GALE' : telemetry.wind >= 30 ? 'MODERATE' : 'FAIR BREEZE'}
             </span>
           </div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: telemetry.wind >= 40 ? '#fbbf24' : '#38bdf8', fontFamily: 'JetBrains Mono' }}>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: telemetry.wind >= 45 ? '#f87171' : telemetry.wind >= 30 ? '#fbbf24' : '#38bdf8', fontFamily: 'JetBrains Mono' }}>
             {telemetry.wind} <span style={{ fontSize: '0.85rem' }}>km/h</span>
           </div>
           <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-            {telemetry.isSevere ? `Gusts peaking at ${telemetry.gusts} km/h` : 'Safe operational transit speed'}
+            {telemetry.gusts >= 40 ? `Gusts peaking at ${telemetry.gusts} km/h` : 'Safe operational transit speed'}
           </span>
         </div>
 
@@ -289,15 +382,31 @@ export function AiCopilotBanner() {
         <div className="ai-telemetry-chip">
           <div className="flex items-center justify-between">
             <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Port Advisory Flag</span>
-            <span style={{ color: telemetry.isSevere ? '#ef4444' : '#10b981', fontSize: '0.75rem', fontWeight: 700 }}>
-              {telemetry.isSevere ? 'HOISTED' : 'CLEAR'}
+            <span style={{ color: telemetry.alertLevel === 'cyclone' ? '#ef4444' : telemetry.alertLevel === 'rough_sea' || telemetry.alertLevel === 'squall' ? '#fbbf24' : '#10b981', fontSize: '0.75rem', fontWeight: 700 }}>
+              {telemetry.alertLevel === 'cyclone' ? 'HOISTED' : telemetry.alertLevel === 'rough_sea' || telemetry.alertLevel === 'squall' ? 'CAUTION' : 'CLEAR'}
             </span>
           </div>
-          <div style={{ fontSize: '1.15rem', fontWeight: 800, color: telemetry.isSevere ? '#38bdf8' : '#34d399', fontFamily: 'JetBrains Mono' }}>
-            {telemetry.isSevere ? 'Signal No. 3' : 'Signal 0 (Open)'}
+          <div style={{
+            fontSize: '1.15rem', fontWeight: 800,
+            color: telemetry.alertLevel === 'cyclone' ? '#f87171' : telemetry.alertLevel === 'rough_sea' || telemetry.alertLevel === 'squall' ? '#fbbf24' : '#34d399',
+            fontFamily: 'JetBrains Mono',
+          }}>
+            {telemetry.alertLevel === 'cyclone'
+              ? 'Signal No. 3 (Danger)'
+              : telemetry.alertLevel === 'rough_sea'
+                ? 'Signal No. 1 (Rough Sea)'
+                : telemetry.alertLevel === 'squall'
+                  ? 'Signal No. 2 (Squall)'
+                  : 'Signal 0 (Clear)'}
           </div>
           <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-            {telemetry.isSevere ? 'Local Cautionary: Vizag / Kakinada' : 'Normal harbor departures granted'}
+            {telemetry.alertLevel === 'cyclone'
+              ? 'Cyclone Warning: Vizag / Kakinada'
+              : telemetry.alertLevel === 'rough_sea'
+                ? 'High swell warning for small craft'
+                : telemetry.alertLevel === 'squall'
+                  ? 'Squall alert for open waters'
+                  : 'Normal harbor departures granted'}
           </span>
         </div>
       </div>

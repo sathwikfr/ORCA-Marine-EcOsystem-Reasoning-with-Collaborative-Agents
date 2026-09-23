@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { AlertCard } from '../components/alerts/AlertCard';
 import { AgentStatusPanel } from '../components/agents/AgentStatusPanel';
 import { AiCopilotBanner } from '../components/ai/AiCopilotBanner';
+import { ImdWarningPanel } from '../components/imd/ImdWarningPanel';
 import { alertsAPI } from '../services/api';
 import { useAlertStore } from '../store/alertStore';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -120,6 +121,9 @@ export function DashboardPage() {
 
       {/* AI Copilot & Real-Time Situational Hero */}
       <AiCopilotBanner />
+
+      {/* IMD Hyderabad Live Meteorological Intelligence Panel */}
+      <ImdWarningPanel />
 
       {/* Clean Stat Metric Cards */}
       <div className="stat-grid">

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useAlertStore } from '../store/alertStore';
 import { alertsAPI } from '../services/api';
 import { AlertCard } from '../components/alerts/AlertCard';
+import { ImdWarningPanel } from '../components/imd/ImdWarningPanel';
 import { ALERT_LEVELS, DISASTER_TYPES, DEMO_ALERTS } from '../utils/constants';
 
 const LANGUAGES = [
@@ -40,6 +41,7 @@ export function AlertsPage() {
   const [smsFilter, setSmsFilter] = useState('ALL');
   const [smsSent, setSmsSent] = useState(false);
   const [filter, setFilter] = useState('ALL');
+  const [activeTab, setActiveTab] = useState('orca');
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
@@ -69,11 +71,67 @@ export function AlertsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div>
-        <h1>Alert Management</h1>
-        <p>All alerts · Multi-language dispatch · SMS notification log</p>
+        <h1>Alert Management & Intelligence</h1>
+        <p>ORCA hazard alerts · Multi-language vessel dispatch · IMD Hyderabad live regional telemetry</p>
       </div>
 
-      <div className="grid-2" style={{ alignItems: 'start', gap: 20 }}>
+      {/* Main Tab Switcher */}
+      <div style={{ display: 'flex', gap: 12, borderBottom: '1px solid var(--border)', paddingBottom: 12 }}>
+        <button
+          onClick={() => setActiveTab('orca')}
+          style={{
+            background: activeTab === 'orca' ? 'rgba(0,212,255,0.18)' : 'var(--bg-card)',
+            border: `1px solid ${activeTab === 'orca' ? 'var(--accent-blue)' : 'var(--border)'}`,
+            borderRadius: 24,
+            padding: '8px 20px',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            color: activeTab === 'orca' ? 'var(--accent-blue)' : 'var(--text-secondary)',
+            cursor: 'pointer',
+            transition: 'var(--transition-fast)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <span>🚨</span> ORCA Active Alerts & SMS Dispatch
+        </button>
+
+        <button
+          onClick={() => setActiveTab('imd')}
+          style={{
+            background: activeTab === 'imd' ? 'rgba(0,212,255,0.18)' : 'var(--bg-card)',
+            border: `1px solid ${activeTab === 'imd' ? 'var(--accent-blue)' : 'var(--border)'}`,
+            borderRadius: 24,
+            padding: '8px 20px',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            color: activeTab === 'imd' ? 'var(--accent-blue)' : 'var(--text-secondary)',
+            cursor: 'pointer',
+            transition: 'var(--transition-fast)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <span>📡</span> IMD Hyderabad Live Warnings
+          <span style={{
+            fontSize: '0.68rem',
+            padding: '2px 6px',
+            borderRadius: 10,
+            background: 'rgba(16, 185, 129, 0.2)',
+            color: 'var(--alert-green)',
+            border: '1px solid rgba(16, 185, 129, 0.4)',
+          }}>
+            LIVE
+          </span>
+        </button>
+      </div>
+
+      {activeTab === 'imd' ? (
+        <ImdWarningPanel defaultExpanded={true} showNowcastStrip={true} />
+      ) : (
+        <div className="grid-2" style={{ alignItems: 'start', gap: 20 }}>
         {/* Left: Alert list */}
         <div>
           {/* Filter bar */}
@@ -198,6 +256,7 @@ export function AlertsPage() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }
